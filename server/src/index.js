@@ -19,6 +19,7 @@ app.use('/api/organizations', require('./routes/departments'));
 app.use('/api/org-levels', require('./routes/teams'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/periods', require('./routes/periods'));
+app.use('/api/objectives', require('./routes/objectives'));
 app.use('/api/kpis', require('./routes/kpis'));
 app.use('/api/okrs', require('./routes/okrs'));
 app.use('/api/progress', require('./routes/progress'));

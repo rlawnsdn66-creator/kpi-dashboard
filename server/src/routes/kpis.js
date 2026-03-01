@@ -79,14 +79,14 @@ router.get('/:id', (req, res) => {
 });
 
 router.post('/', (req, res) => {
-  const { period_id, team_id, organization_id, owner_id, name, description, target_value, current_value, unit, direction, status, key_results } = req.body;
+  const { period_id, team_id, organization_id, owner_id, name, description, target_value, current_value, unit, direction, status, key_results, objective_id } = req.body;
   if (!period_id || !name) {
     return res.status(400).json({ error: '기간, 이름은 필수입니다' });
   }
   const db = getDb();
   const insert = db.transaction(() => {
-    const result = db.prepare(`INSERT INTO kpis (period_id, team_id, organization_id, owner_id, name, description, target_value, current_value, unit, direction, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-      .run(period_id, team_id || null, organization_id || null, owner_id || null, name, description || null, target_value || 0, current_value || 0, unit || '%', direction || 'higher_better', status || 'on_track');
+    const result = db.prepare(`INSERT INTO kpis (period_id, team_id, organization_id, owner_id, name, description, target_value, current_value, unit, direction, status, objective_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      .run(period_id, team_id || null, organization_id || null, owner_id || null, name, description || null, target_value || 0, current_value || 0, unit || '%', direction || 'higher_better', status || 'on_track', objective_id || null);
     const kpiId = result.lastInsertRowid;
     if (key_results && key_results.length > 0) {
       const insertKr = db.prepare(`INSERT INTO key_results (kpi_id, title, target_value, current_value, unit, weight, direction) VALUES (?, ?, ?, ?, ?, ?, ?)`);
@@ -104,12 +104,12 @@ router.post('/', (req, res) => {
 });
 
 router.put('/:id', (req, res) => {
-  const { period_id, team_id, organization_id, owner_id, name, description, target_value, current_value, unit, direction, status, progress } = req.body;
+  const { period_id, team_id, organization_id, owner_id, name, description, target_value, current_value, unit, direction, status, progress, objective_id } = req.body;
   const db = getDb();
   const existing = db.prepare('SELECT * FROM kpis WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'KPI를 찾을 수 없습니다' });
-  db.prepare(`UPDATE kpis SET period_id=COALESCE(?,period_id), team_id=COALESCE(?,team_id), organization_id=COALESCE(?,organization_id), owner_id=COALESCE(?,owner_id), name=COALESCE(?,name), description=COALESCE(?,description), target_value=COALESCE(?,target_value), current_value=COALESCE(?,current_value), unit=COALESCE(?,unit), direction=COALESCE(?,direction), status=COALESCE(?,status), progress=COALESCE(?,progress), updated_at=datetime('now') WHERE id=?`)
-    .run(period_id, team_id, organization_id, owner_id, name, description, target_value, current_value, unit, direction, status, progress != null ? progress : undefined, req.params.id);
+  db.prepare(`UPDATE kpis SET period_id=COALESCE(?,period_id), team_id=COALESCE(?,team_id), organization_id=COALESCE(?,organization_id), owner_id=COALESCE(?,owner_id), name=COALESCE(?,name), description=COALESCE(?,description), target_value=COALESCE(?,target_value), current_value=COALESCE(?,current_value), unit=COALESCE(?,unit), direction=COALESCE(?,direction), status=COALESCE(?,status), progress=COALESCE(?,progress), objective_id=?, updated_at=datetime('now') WHERE id=?`)
+    .run(period_id, team_id, organization_id, owner_id, name, description, target_value, current_value, unit, direction, status, progress != null ? progress : undefined, objective_id !== undefined ? (objective_id || null) : existing.objective_id, req.params.id);
   const kpi = db.prepare('SELECT * FROM kpis WHERE id = ?').get(req.params.id);
   kpi.key_results = db.prepare('SELECT * FROM key_results WHERE kpi_id = ?').all(req.params.id);
   res.json(kpi);
@@ -150,6 +150,55 @@ router.delete('/:id/key-results/:krId', (req, res) => {
   if (result.changes === 0) return res.status(404).json({ error: '핵심 결과를 찾을 수 없습니다' });
   recalcKpiProgress(db, Number(req.params.id));
   res.json({ message: '삭제 완료' });
+});
+
+// 이전 기간 KPI/OKR 불러오기
+router.post('/import-from-period', (req, res) => {
+  const { source_period_id, target_period_id } = req.body;
+  if (!source_period_id || !target_period_id) {
+    return res.status(400).json({ error: 'source_period_id와 target_period_id는 필수입니다' });
+  }
+  const db = getDb();
+  const result = db.transaction(() => {
+    // Objective 복사
+    const sourceObjectives = db.prepare('SELECT * FROM objectives WHERE period_id = ?').all(source_period_id);
+    let objectiveCount = 0;
+    const objectiveIdMap = {};
+
+    for (const obj of sourceObjectives) {
+      const ins = db.prepare('INSERT INTO objectives (period_id, organization_id, title, description) VALUES (?, ?, ?, ?)')
+        .run(target_period_id, obj.organization_id, obj.title, obj.description);
+      objectiveIdMap[obj.id] = ins.lastInsertRowid;
+      objectiveCount++;
+    }
+
+    // KPI 복사
+    const sourceKpis = db.prepare('SELECT * FROM kpis WHERE period_id = ?').all(source_period_id);
+    let kpiCount = 0;
+    let okrCount = 0;
+    const kpiIdMap = {};
+
+    for (const kpi of sourceKpis) {
+      const newObjectiveId = kpi.objective_id ? (objectiveIdMap[kpi.objective_id] || null) : null;
+      const ins = db.prepare(`INSERT INTO kpis (period_id, team_id, organization_id, owner_id, name, description, target_value, current_value, unit, direction, status, progress, objective_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'on_track', 0, ?)`)
+        .run(target_period_id, kpi.team_id, kpi.organization_id, kpi.owner_id, kpi.name, kpi.description, kpi.target_value, 0, kpi.unit, kpi.direction, newObjectiveId);
+      kpiIdMap[kpi.id] = ins.lastInsertRowid;
+      kpiCount++;
+    }
+
+    // OKR 복사
+    const sourceOkrs = db.prepare('SELECT * FROM okrs WHERE period_id = ?').all(source_period_id);
+    for (const okr of sourceOkrs) {
+      const newKpiId = okr.kpi_id ? (kpiIdMap[okr.kpi_id] || null) : null;
+      db.prepare(`INSERT INTO okrs (period_id, kpi_id, organization_id, owner_id, title, description, status, progress) VALUES (?, ?, ?, ?, ?, ?, 'on_track', 0)`)
+        .run(target_period_id, newKpiId, okr.organization_id, okr.owner_id, okr.title, okr.description);
+      okrCount++;
+    }
+
+    return { objectiveCount, kpiCount, okrCount };
+  })();
+
+  res.json({ message: `Objective ${result.objectiveCount}개, KPI ${result.kpiCount}개, OKR ${result.okrCount}개를 불러왔습니다`, ...result });
 });
 
 module.exports = router;

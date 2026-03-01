@@ -79,6 +79,25 @@ function migrate() {
     console.log('kpis에 progress 컬럼 추가 완료');
   }
 
+  // objectives 테이블 생성
+  db.exec(`CREATE TABLE IF NOT EXISTS objectives (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    period_id INTEGER NOT NULL,
+    organization_id INTEGER,
+    title TEXT NOT NULL,
+    description TEXT,
+    created_at DATETIME DEFAULT (datetime('now')),
+    updated_at DATETIME DEFAULT (datetime('now')),
+    FOREIGN KEY (period_id) REFERENCES periods(id),
+    FOREIGN KEY (organization_id) REFERENCES organizations(id)
+  )`);
+
+  // kpis에 objective_id 컬럼 추가 마이그레이션
+  if (!kpiCols.includes('objective_id')) {
+    db.exec("ALTER TABLE kpis ADD COLUMN objective_id INTEGER REFERENCES objectives(id)");
+    console.log('kpis에 objective_id 컬럼 추가 완료');
+  }
+
   // okrs에 kpi_id 컬럼 추가 마이그레이션
   const okrCols = db.prepare("PRAGMA table_info(okrs)").all().map(c => c.name);
   if (!okrCols.includes('kpi_id')) {

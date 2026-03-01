@@ -10,7 +10,9 @@ router.get('/summary', (req, res) => {
   const params = period_id ? [period_id] : [];
 
   const kpiCount = db.prepare(`SELECT COUNT(*) as count FROM kpis ${where}`).get(...params).count;
-  const kpiCompleted = db.prepare(`SELECT COUNT(*) as count FROM kpis ${where ? where + ' AND' : 'WHERE'} status = 'completed'`).get(...params).count;
+  const kpiAvgProgress = period_id
+    ? db.prepare('SELECT COALESCE(AVG(progress), 0) as avg FROM kpis WHERE period_id = ?').get(period_id).avg
+    : db.prepare('SELECT COALESCE(AVG(progress), 0) as avg FROM kpis').get().avg;
   const okrCount = db.prepare(`SELECT COUNT(*) as count FROM okrs ${where}`).get(...params).count;
 
   let okrAvgProgress;
@@ -35,7 +37,7 @@ router.get('/summary', (req, res) => {
 
   res.json({
     kpi_count: kpiCount,
-    kpi_achievement_rate: kpiCount > 0 ? Math.round((kpiCompleted / kpiCount) * 100) : 0,
+    kpi_achievement_rate: Math.round(kpiAvgProgress * 10) / 10,
     okr_count: okrCount,
     okr_avg_progress: Math.round(okrAvgProgress * 10) / 10,
     review_total: reviewSummary.total,
@@ -79,7 +81,7 @@ router.get('/org-summary', (req, res) => {
   const rows = db.prepare(`
     SELECT org.id, org.name, ol.label as level_label,
       (SELECT COUNT(*) FROM kpis WHERE organization_id = org.id ${periodFilter}) as kpi_count,
-      (SELECT COUNT(*) FROM kpis WHERE organization_id = org.id AND status = 'completed' ${periodFilter}) as kpi_completed,
+      (SELECT COALESCE(AVG(progress), 0) FROM kpis WHERE organization_id = org.id ${periodFilter}) as kpi_avg_progress,
       (SELECT COUNT(*) FROM okrs WHERE organization_id = org.id ${periodFilter}) as okr_count,
       (SELECT COALESCE(AVG(progress), 0) FROM okrs WHERE organization_id = org.id ${periodFilter}) as okr_avg_progress
     FROM organizations org
@@ -87,7 +89,7 @@ router.get('/org-summary', (req, res) => {
     ORDER BY ol.depth, org.name
   `).all(...params, ...params, ...params, ...params);
 
-  res.json(rows.filter(r => r.kpi_count > 0 || r.okr_count > 0));
+  res.json(rows);
 });
 
 // 하위 호환: team-summary
@@ -100,7 +102,7 @@ router.get('/team-summary', (req, res) => {
   const rows = db.prepare(`
     SELECT org.id, org.name,
       (SELECT COUNT(*) FROM kpis WHERE organization_id = org.id ${periodFilter}) as kpi_count,
-      (SELECT COUNT(*) FROM kpis WHERE organization_id = org.id AND status = 'completed' ${periodFilter}) as kpi_completed,
+      (SELECT COALESCE(AVG(progress), 0) FROM kpis WHERE organization_id = org.id ${periodFilter}) as kpi_avg_progress,
       (SELECT COUNT(*) FROM okrs WHERE organization_id = org.id ${periodFilter}) as okr_count,
       (SELECT COALESCE(AVG(progress), 0) FROM okrs WHERE organization_id = org.id ${periodFilter}) as okr_avg_progress
     FROM organizations org

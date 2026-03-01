@@ -27,7 +27,7 @@ export default function OkrPage() {
   const [filterOrg, setFilterOrg] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editId, setEditId] = useState(null);
-  const [form, setForm] = useState({ kpi_id: '', title: '', description: '', organization_id: '', owner_id: '', key_results: [] });
+  const [form, setForm] = useState({ kpi_id: '', title: '', description: '', organization_id: '', owner_id: '' });
   const [progressModal, setProgressModal] = useState(null);
   const [progressValue, setProgressValue] = useState('');
   const [progressNote, setProgressNote] = useState('');
@@ -35,10 +35,6 @@ export default function OkrPage() {
   const [addKrForm, setAddKrForm] = useState(null);
   const [expandedOkrs, setExpandedOkrs] = useState({});
 
-  // OKR progress update
-  const [okrProgressModal, setOkrProgressModal] = useState(null); // { id, title, progress, status }
-  const [okrProgressValue, setOkrProgressValue] = useState('');
-  const [okrStatusValue, setOkrStatusValue] = useState('');
 
   // Milestone editing
   const [msModal, setMsModal] = useState(null); // { okrId, milestones: [{period_label, target_value, current_value}] }
@@ -64,13 +60,13 @@ export default function OkrPage() {
   const toggleOkr = (id) => setExpandedOkrs(prev => ({ ...prev, [id]: !prev[id] }));
 
   const openCreate = () => {
-    setForm({ kpi_id: '', title: '', description: '', organization_id: '', owner_id: '', key_results: [{ title: '', target_value: 100, unit: '%', weight: 1 }] });
+    setForm({ kpi_id: '', title: '', description: '', organization_id: '', owner_id: '' });
     setEditId(null);
     setModalOpen(true);
   };
 
   const openEdit = (okr) => {
-    setForm({ kpi_id: okr.kpi_id || '', title: okr.title, description: okr.description || '', organization_id: okr.organization_id || '', owner_id: okr.owner_id || '' });
+    setForm({ kpi_id: okr.kpi_id || '', title: okr.title, description: okr.description || '', organization_id: okr.organization_id || '', owner_id: okr.owner_id || '', progress: okr.progress ?? 0, status: okr.status || 'on_track' });
     setEditId(okr.id);
     setModalOpen(true);
   };
@@ -94,11 +90,10 @@ export default function OkrPage() {
       owner_id: form.owner_id ? Number(form.owner_id) : null
     };
     if (editId) {
+      data.progress = Number(form.progress) || 0;
+      data.status = form.status || 'on_track';
       await updateOkr(editId, data);
     } else {
-      data.key_results = form.key_results?.filter(kr => kr.title.trim()).map(kr => ({
-        title: kr.title, target_value: kr.target_value, unit: kr.unit, weight: kr.weight
-      }));
       await createOkr(data);
     }
     setModalOpen(false);
@@ -140,27 +135,6 @@ export default function OkrPage() {
     setProgressModal(null);
     setProgressValue('');
     setProgressNote('');
-    load();
-  };
-
-  const addKrToForm = () => setForm({ ...form, key_results: [...(form.key_results || []), { title: '', target_value: 100, unit: '%', weight: 1 }] });
-  const updateKrInForm = (idx, field, val) => {
-    const krs = [...form.key_results];
-    krs[idx] = { ...krs[idx], [field]: val };
-    setForm({ ...form, key_results: krs });
-  };
-  const removeKrFromForm = (idx) => setForm({ ...form, key_results: form.key_results.filter((_, i) => i !== idx) });
-
-  // OKR progress helpers
-  const openOkrProgress = (okr) => {
-    setOkrProgressModal({ id: okr.id, title: okr.title });
-    setOkrProgressValue(okr.progress);
-    setOkrStatusValue(okr.status);
-  };
-  const handleOkrProgressSubmit = async (e) => {
-    e.preventDefault();
-    await updateOkr(okrProgressModal.id, { progress: Number(okrProgressValue), status: okrStatusValue });
-    setOkrProgressModal(null);
     load();
   };
 
@@ -252,13 +226,13 @@ export default function OkrPage() {
               </div>
 
               {group.okrs.map(okr => {
-                const isExpanded = expandedOkrs[okr.id] !== false;
+                const isExpanded = expandedOkrs[okr.id] === true;
                 const hasMilestones = (okr.milestones || []).length > 0;
                 return (
                   <div key={okr.id} className="cascade-okr">
                     <div className="cascade-okr__header" onClick={() => toggleOkr(okr.id)}>
                       <div className="cascade-okr__left">
-                        <div className="cascade-okr__circle" onClick={e => { e.stopPropagation(); openOkrProgress(okr); }} title="클릭하여 진행률 업데이트">
+                        <div className="cascade-okr__circle" onClick={e => { e.stopPropagation(); openEdit(okr); }} title="클릭하여 수정">
                           <CircleProgress value={okr.progress} size={44} strokeWidth={4} />
                         </div>
                         <div className="cascade-okr__info">
@@ -268,14 +242,12 @@ export default function OkrPage() {
                             <StatusBadge status={okr.status} />
                           </div>
                           <div className="cascade-okr__meta">
-                            <span>{okr.team_name}</span>
-                            {okr.owner_name && <span> · {okr.owner_name}</span>}
+                            {okr.team_name && <span>{okr.team_name}</span>}
                             {okr.key_results.length > 0 && <span> · KR {okr.key_results.length}개</span>}
                           </div>
                         </div>
                       </div>
                       <div className="cascade-okr__actions" onClick={e => e.stopPropagation()}>
-                        <button className="btn btn--xs btn--primary" onClick={() => openOkrProgress(okr)}>진행률</button>
                         <button className="btn btn--xs" onClick={() => openMsModal(okr)}>목표설정</button>
                         <button className="btn btn--xs" onClick={() => openEdit(okr)}>수정</button>
                         <button className="btn btn--xs btn--danger" onClick={() => handleDelete(okr.id)}>삭제</button>
@@ -325,6 +297,9 @@ export default function OkrPage() {
 
                     {isExpanded && (
                       <div className="cascade-krs">
+                        {okr.description && (
+                          <div className="cascade-okr__desc">{okr.description}</div>
+                        )}
                         {okr.key_results.map(kr => (
                           <div key={kr.id} className="cascade-kr">
                             <div className="cascade-kr__info">
@@ -377,19 +352,23 @@ export default function OkrPage() {
             {users.filter(u => !form.organization_id || u.organization_id === Number(form.organization_id)).map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
           </select></label>
 
-          {!editId && (
-            <div className="kr-form-section">
-              <h4>핵심 결과</h4>
-              {form.key_results?.map((kr, i) => (
-                <div key={i} className="kr-form-row">
-                  <input placeholder="제목" value={kr.title} onChange={e => updateKrInForm(i, 'title', e.target.value)} />
-                  <input type="number" placeholder="목표값" value={kr.target_value} onChange={e => updateKrInForm(i, 'target_value', e.target.value)} style={{width: 80}} />
-                  <input placeholder="단위" value={kr.unit} onChange={e => updateKrInForm(i, 'unit', e.target.value)} style={{width: 60}} />
-                  <button type="button" className="btn btn--sm btn--danger" onClick={() => removeKrFromForm(i)}>X</button>
+          {editId && (
+            <>
+              <label>진행률 ({form.progress}%)
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <input type="range" min="0" max="100" step="1" value={form.progress} onChange={e => setForm({...form, progress: e.target.value})} style={{ flex: 1 }} />
+                  <input type="number" min="0" max="100" step="1" value={form.progress} onChange={e => setForm({...form, progress: e.target.value})} style={{ width: 70, textAlign: 'center' }} />
                 </div>
-              ))}
-              <button type="button" className="btn btn--sm" onClick={addKrToForm}>+ 핵심 결과 추가</button>
-            </div>
+              </label>
+              <label>상태
+                <select value={form.status} onChange={e => setForm({...form, status: e.target.value})}>
+                  <option value="on_track">정상</option>
+                  <option value="at_risk">주의</option>
+                  <option value="behind">지연</option>
+                  <option value="completed">완료</option>
+                </select>
+              </label>
+            </>
           )}
 
           <div className="form-actions">
@@ -420,33 +399,6 @@ export default function OkrPage() {
             </table>
             <div className="form-actions">
               <button type="button" className="btn" onClick={() => setMsModal(null)}>취소</button>
-              <button type="submit" className="btn btn--primary">저장</button>
-            </div>
-          </form>
-        )}
-      </Modal>
-
-      {/* OKR 진행률 업데이트 모달 */}
-      <Modal isOpen={!!okrProgressModal} onClose={() => setOkrProgressModal(null)} title="OKR 진행률 업데이트">
-        {okrProgressModal && (
-          <form onSubmit={handleOkrProgressSubmit} className="form">
-            <p style={{ fontWeight: 600 }}>{okrProgressModal.title}</p>
-            <label>진행률 (%)
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <input type="range" min="0" max="100" step="1" value={okrProgressValue} onChange={e => setOkrProgressValue(e.target.value)} style={{ flex: 1 }} />
-                <input type="number" min="0" max="100" step="1" value={okrProgressValue} onChange={e => setOkrProgressValue(e.target.value)} style={{ width: 70, textAlign: 'center' }} />
-              </div>
-            </label>
-            <label>상태
-              <select value={okrStatusValue} onChange={e => setOkrStatusValue(e.target.value)}>
-                <option value="on_track">정상</option>
-                <option value="at_risk">주의</option>
-                <option value="behind">지연</option>
-                <option value="completed">완료</option>
-              </select>
-            </label>
-            <div className="form-actions">
-              <button type="button" className="btn" onClick={() => setOkrProgressModal(null)}>취소</button>
               <button type="submit" className="btn btn--primary">저장</button>
             </div>
           </form>

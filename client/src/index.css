@@ -118,26 +118,45 @@ input, select, textarea { font: inherit; }
 .circle-progress__pct { font-size: 12px; font-weight: 700; line-height: 1; }
 .circle-progress__sub { font-size: 9px; color: var(--text-secondary); }
 
-/* === Cascade Layout (KPI → OKR → KR) === */
+/* === Cascade Layout (Objective → KPI → OKR → KR) === */
 .kpi-cascade { display: flex; flex-direction: column; gap: 20px; }
 
+/* Objective card */
+.cascade-objective { background: var(--bg-card); border-radius: var(--radius); box-shadow: 0 1px 4px rgba(0,0,0,0.08); border-left: 4px solid #8b5cf6; }
+.cascade-objective__header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; cursor: pointer; transition: background 0.1s; }
+.cascade-objective__header:hover { background: #faf5ff; }
+.cascade-objective__left { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; }
+.cascade-objective__icon { width: 44px; height: 44px; border-radius: 10px; background: #8b5cf6; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; letter-spacing: 0.5px; flex-shrink: 0; }
+.cascade-objective__info { flex: 1; min-width: 0; }
+.cascade-objective__title-row { display: flex; align-items: center; gap: 8px; }
+.cascade-objective__name { font-size: 16px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; }
+.cascade-objective__meta { font-size: 12px; color: var(--text-secondary); margin-top: 2px; padding-left: 22px; }
+.cascade-objective__actions { display: flex; gap: 6px; flex-shrink: 0; }
+.cascade-objective__body { border-top: 1px solid var(--border-color); padding: 12px 16px; display: flex; flex-direction: column; gap: 12px; }
+.cascade-objective--unassigned { border-left-color: var(--color-gray-400, #999); }
+
 /* KPI card */
-.cascade-kpi { background: var(--bg-card); border-radius: var(--radius); box-shadow: 0 1px 4px rgba(0,0,0,0.08); overflow: hidden; }
+.cascade-kpi { background: var(--bg-card); border-radius: var(--radius); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
 .cascade-kpi__header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; cursor: pointer; transition: background 0.1s; }
 .cascade-kpi__header:hover { background: #f8fafc; }
 .cascade-kpi__left { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; }
 .cascade-kpi__info { flex: 1; min-width: 0; }
 .cascade-kpi__title-row { display: flex; align-items: center; gap: 8px; }
 .cascade-kpi__expand { font-size: 12px; color: var(--text-secondary); flex-shrink: 0; width: 14px; }
+.cascade-kpi__tag { font-size: 10px; font-weight: 700; color: #fff; background: #6366f1; padding: 2px 6px; border-radius: 4px; flex-shrink: 0; letter-spacing: 0.5px; }
 .cascade-kpi__name { font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cascade-kpi__meta { font-size: 12px; color: var(--text-secondary); margin-top: 2px; padding-left: 22px; }
-.cascade-kpi__actions { display: flex; gap: 6px; flex-shrink: 0; }
-.cascade-kpi__body { border-top: 1px solid var(--border-color); }
+.cascade-kpi__actions { display: flex; gap: 6px; flex-shrink: 0; align-items: center; }
+.cascade-kpi__obj-select { font-size: 12px; padding: 4px 8px; border: 1px solid #8b5cf6; border-radius: 4px; color: #8b5cf6; background: #faf5ff; cursor: pointer; max-width: 140px; }
+.cascade-kpi__body { border-top: 1px solid var(--border-color); position: relative; padding-left: 48px; }
 
 /* OKR inside KPI */
-.cascade-okr { border-top: 1px solid var(--border-color); }
-.cascade-okr__header { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px 12px 32px; cursor: pointer; transition: background 0.1s; }
-.cascade-okr__header:hover { background: #fafbfc; }
+.cascade-okr { border-top: none; position: relative; margin-left: 0; }
+.cascade-okr::before { content: ''; position: absolute; top: 34px; left: 0; width: 20px; height: 0; border-top: 2px solid #cbd5e1; z-index: 1; pointer-events: none; }
+.cascade-okr::after { content: ''; position: absolute; top: 0; left: 0; width: 2px; height: 100%; background: #cbd5e1; z-index: 1; pointer-events: none; }
+.cascade-okr:last-of-type::after { height: 34px; }
+.cascade-okr__header { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px 12px 28px; cursor: pointer; transition: background 0.1s; }
+.cascade-okr__header:hover { background: rgba(248,250,252,0.85); }
 .cascade-okr__left { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
 .cascade-okr__info { flex: 1; min-width: 0; }
 .cascade-okr__title-row { display: flex; align-items: center; gap: 8px; }
@@ -150,6 +169,7 @@ input, select, textarea { font: inherit; }
 /* KR rows */
 .cascade-krs { padding: 8px 20px 12px 76px; background: #f9fafb; }
 .cascade-krs--direct { padding-left: 40px; }
+.cascade-okr__desc { font-size: 13px; color: var(--text-secondary); padding: 4px 0 8px 24px; line-height: 1.5; white-space: pre-wrap; }
 .cascade-krs__label { font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
 .cascade-kr { padding: 8px 0; border-bottom: 1px solid #eef1f5; }
 .cascade-kr:last-of-type { border-bottom: none; }

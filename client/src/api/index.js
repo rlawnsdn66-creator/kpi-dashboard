@@ -33,12 +33,19 @@ export const createPeriod = (data) => api.post('/periods', data).then(r => r.dat
 export const updatePeriod = (id, data) => api.put(`/periods/${id}`, data).then(r => r.data);
 export const deletePeriod = (id) => api.delete(`/periods/${id}`).then(r => r.data);
 
+// Objective
+export const getObjectives = (params) => api.get('/objectives', { params }).then(r => r.data);
+export const createObjective = (data) => api.post('/objectives', data).then(r => r.data);
+export const updateObjective = (id, data) => api.put(`/objectives/${id}`, data).then(r => r.data);
+export const deleteObjective = (id) => api.delete(`/objectives/${id}`).then(r => r.data);
+
 // KPI
 export const getKpis = (params) => api.get('/kpis', { params }).then(r => r.data);
 export const getKpi = (id) => api.get(`/kpis/${id}`).then(r => r.data);
 export const createKpi = (data) => api.post('/kpis', data).then(r => r.data);
 export const updateKpi = (id, data) => api.put(`/kpis/${id}`, data).then(r => r.data);
 export const deleteKpi = (id) => api.delete(`/kpis/${id}`).then(r => r.data);
+export const importFromPeriod = (data) => api.post('/kpis/import-from-period', data).then(r => r.data);
 
 // OKR
 export const getOkrs = (params) => api.get('/okrs', { params }).then(r => r.data);
