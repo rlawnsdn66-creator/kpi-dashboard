@@ -1,18 +1,9 @@
 const { Router } = require('express');
 const { getDb } = require('../db/connection');
+const { determineStatus } = require('../utils/status');
+const { getDescendantIds } = require('../utils/org');
 
 const router = Router();
-
-function getDescendantIds(db, orgId) {
-  return db.prepare(`
-    WITH RECURSIVE descendants AS (
-      SELECT id FROM organizations WHERE id = ?
-      UNION ALL
-      SELECT o.id FROM organizations o JOIN descendants d ON o.parent_id = d.id
-    )
-    SELECT id FROM descendants
-  `).all(orgId).map(r => r.id);
-}
 
 function recalcKpiProgress(db, kpiId) {
   const childOkrs = db.prepare('SELECT progress FROM okrs WHERE kpi_id = ?').all(kpiId);
@@ -22,10 +13,7 @@ function recalcKpiProgress(db, kpiId) {
   }
   const avg = childOkrs.reduce((sum, o) => sum + o.progress, 0) / childOkrs.length;
   const avgProgress = Math.round(avg * 10) / 10;
-  let status = 'on_track';
-  if (avgProgress >= 100) status = 'completed';
-  else if (avgProgress < 30) status = 'behind';
-  else if (avgProgress < 60) status = 'at_risk';
+  const status = determineStatus(avgProgress);
   db.prepare('UPDATE kpis SET progress = ?, current_value = ?, status = ?, updated_at = datetime(\'now\') WHERE id = ?').run(avgProgress, avgProgress, status, kpiId);
 }
 

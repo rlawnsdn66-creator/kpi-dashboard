@@ -15,15 +15,7 @@ import {
   importFromPeriod,
   getObjectives, createObjective, updateObjective, deleteObjective
 } from '../api';
-
-function flattenTree(nodes, depth = 0) {
-  let result = [];
-  for (const n of nodes) {
-    result.push({ ...n, _depth: depth });
-    if (n.children) result = result.concat(flattenTree(n.children, depth + 1));
-  }
-  return result;
-}
+import { flattenTree } from '../utils/tree';
 
 export default function KpiPage() {
   const { selectedPeriod } = usePeriod();

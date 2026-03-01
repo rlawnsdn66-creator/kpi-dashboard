@@ -1,9 +1,11 @@
+import { getProgressColor } from '../../utils/progress';
+
 export default function CircleProgress({ value = 0, size = 64, strokeWidth = 6, label }) {
   const pct = Math.min(Math.max(Math.round(value), 0), 100);
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (pct / 100) * circumference;
-  const color = pct >= 80 ? 'var(--color-success)' : pct >= 50 ? 'var(--color-warning)' : 'var(--color-danger)';
+  const color = getProgressColor(pct);
 
   return (
     <div className="circle-progress" style={{ width: size, height: size }}>

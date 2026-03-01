@@ -3,8 +3,10 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import Header from '../components/layout/Header';
 import SummaryCard from '../components/common/SummaryCard';
 import StatusBadge from '../components/common/StatusBadge';
+import ProgressBar from '../components/common/ProgressBar';
 import { usePeriod } from '../context/PeriodContext';
 import { getDashboardSummary, getOkrProgress, getOrgSummary, getKpis } from '../api';
+import { STATUS_LABELS } from '../constants/labels';
 
 const PIE_COLORS = ['#4caf50', '#ff9800', '#f44336', '#2196f3'];
 
@@ -31,8 +33,7 @@ export default function Dashboard() {
       const org = orgRes.status === 'fulfilled' ? orgRes.value : [];
       const kpis = kpisRes.status === 'fulfilled' ? kpisRes.value : [];
       setSummary(sum);
-      const statusLabels = { on_track: '정상', at_risk: '주의', behind: '지연', completed: '완료' };
-      setOkrStatus(okr.map(o => ({ name: statusLabels[o.status] || o.status, value: o.count })));
+      setOkrStatus(okr.map(o => ({ name: STATUS_LABELS[o.status] || o.status, value: o.count })));
       setOrgData(org.map(t => ({ name: t.name, level: t.level_label, kpiCount: t.kpi_count, kpiProgress: Math.round(t.kpi_avg_progress), okrCount: t.okr_count, okrProgress: Math.round(t.okr_avg_progress) })));
       setAtRiskKpis(kpis.filter(k => k.status === 'at_risk' || k.status === 'behind'));
       setLoading(false);
@@ -78,21 +79,11 @@ export default function Dashboard() {
                     <td>{org.level}</td>
                     <td>{org.kpiCount}</td>
                     <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div style={{ flex: 1, height: 8, backgroundColor: '#e0e0e0', borderRadius: 4 }}>
-                          <div style={{ width: `${Math.min(org.kpiProgress, 100)}%`, height: '100%', backgroundColor: '#2196f3', borderRadius: 4 }} />
-                        </div>
-                        <span style={{ minWidth: 40, textAlign: 'right' }}>{org.kpiProgress}%</span>
-                      </div>
+                      <ProgressBar value={org.kpiProgress} size="sm" color="#2196f3" />
                     </td>
                     <td>{org.okrCount}</td>
                     <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div style={{ flex: 1, height: 8, backgroundColor: '#e0e0e0', borderRadius: 4 }}>
-                          <div style={{ width: `${Math.min(org.okrProgress, 100)}%`, height: '100%', backgroundColor: '#ff9800', borderRadius: 4 }} />
-                        </div>
-                        <span style={{ minWidth: 40, textAlign: 'right' }}>{org.okrProgress}%</span>
-                      </div>
+                      <ProgressBar value={org.okrProgress} size="sm" color="#ff9800" />
                     </td>
                   </tr>
                 ))}

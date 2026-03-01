@@ -5,9 +5,7 @@ import Modal from '../components/common/Modal';
 import StatusBadge from '../components/common/StatusBadge';
 import { usePeriod } from '../context/PeriodContext';
 import { getReviewCycles, createReviewCycle, updateReviewCycle, deleteReviewCycle, getReviews, createReview, deleteReview, getUsers, autoPopulateReview } from '../api';
-
-const cycleStatusLabel = { draft: '초안', open: '진행중', in_review: '검토중', closed: '마감' };
-const reviewStatusLabel = { draft: '초안', in_progress: '작성중', submitted: '제출됨', approved: '승인됨' };
+import { REVIEW_STATUS_LABELS, CYCLE_STATUS_LABELS } from '../constants/labels';
 
 export default function ReviewPage() {
   const { selectedPeriod } = usePeriod();
@@ -97,7 +95,7 @@ export default function ReviewPage() {
               <div key={c.id} className={`panel-item ${selectedCycle?.id === c.id ? 'active' : ''}`} onClick={() => setSelectedCycle(c)}>
                 <div>
                   <div>{c.name}</div>
-                  <small style={{ color: '#888' }}>{cycleStatusLabel[c.status] || c.status}</small>
+                  <small style={{ color: '#888' }}>{CYCLE_STATUS_LABELS[c.status] || c.status}</small>
                 </div>
                 <div className="panel-item__actions">
                   <button className="btn btn--xs" onClick={e => { e.stopPropagation(); openCycleEdit(c); }}>수정</button>
@@ -127,7 +125,7 @@ export default function ReviewPage() {
                         <td>{r.reviewee_name}</td>
                         <td>{r.reviewer_name || '-'}</td>
                         <td>{r.overall_score != null ? r.overall_score.toFixed(1) : '-'}</td>
-                        <td><StatusBadge status={r.status} labels={reviewStatusLabel} /></td>
+                        <td><StatusBadge status={r.status} labels={REVIEW_STATUS_LABELS} /></td>
                         <td>
                           <div className="action-buttons">
                             <button className="btn btn--xs btn--primary" onClick={e => { e.stopPropagation(); navigate(`/review/${r.id}`); }}>상세</button>

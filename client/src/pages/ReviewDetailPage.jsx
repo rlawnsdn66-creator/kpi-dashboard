@@ -3,8 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Header from '../components/layout/Header';
 import ProgressBar from '../components/common/ProgressBar';
 import { getReview, updateReview, updateReviewItem, autoPopulateReview } from '../api';
-
-const statusLabel = { draft: '초안', in_progress: '작성중', submitted: '제출됨', approved: '승인됨' };
+import { REVIEW_STATUS_LABELS } from '../constants/labels';
 
 export default function ReviewDetailPage() {
   const { id } = useParams();
@@ -90,7 +89,7 @@ export default function ReviewDetailPage() {
           <div>
             <h3>피평가자: {review.reviewee_name}</h3>
             <p style={{ color: '#666' }}>
-              평가자: {review.reviewer_name || '미지정'} | 상태: {statusLabel[review.status] || review.status}
+              평가자: {review.reviewer_name || '미지정'} | 상태: {REVIEW_STATUS_LABELS[review.status] || review.status}
               {review.overall_score != null && ` | 종합점수: ${review.overall_score.toFixed(1)}`}
             </p>
           </div>

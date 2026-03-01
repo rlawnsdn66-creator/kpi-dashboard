@@ -6,17 +6,10 @@ import StatusBadge from '../components/common/StatusBadge';
 import CircleProgress from '../components/common/CircleProgress';
 import { usePeriod } from '../context/PeriodContext';
 import { getOkrs, createOkr, updateOkr, deleteOkr, createKeyResult, deleteKeyResult, getOrgTree, getUsers, createProgress, getKpis, bulkSetOkrMilestones, updateOkrMilestone } from '../api';
+import { flattenTree } from '../utils/tree';
+import { getProgressColor } from '../utils/progress';
 
 const MILESTONE_LABELS = ['6월', '10월', '12월'];
-
-function flattenTree(nodes, depth = 0) {
-  let result = [];
-  for (const n of nodes) {
-    result.push({ ...n, _depth: depth });
-    if (n.children) result = result.concat(flattenTree(n.children, depth + 1));
-  }
-  return result;
-}
 
 export default function OkrPage() {
   const { selectedPeriod } = usePeriod();
@@ -261,7 +254,7 @@ export default function OkrPage() {
                           const ms = getMilestone(okr, label);
                           if (!ms) return null;
                           const pct = ms.target_value > 0 ? Math.min(Math.round((ms.current_value / ms.target_value) * 100), 100) : 0;
-                          const color = pct >= 80 ? 'var(--color-success)' : pct >= 50 ? 'var(--color-warning)' : 'var(--color-danger)';
+                          const color = getProgressColor(pct);
                           return (
                             <div key={label} className="ms-bar__item">
                               <div className="ms-bar__label">{label}</div>

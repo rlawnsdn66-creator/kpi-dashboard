@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const { getDb } = require('../db/connection');
 const { recalcKpiProgress } = require('./kpis');
+const { determineStatus } = require('../utils/status');
 
 const router = Router();
 
@@ -15,10 +16,7 @@ function recalcOkrProgress(db, okrId) {
     totalWeight += kr.weight;
   }
   const avgProgress = totalWeight > 0 ? Math.round(weightedProgress / totalWeight * 10) / 10 : 0;
-  let status = 'on_track';
-  if (avgProgress >= 100) status = 'completed';
-  else if (avgProgress < 30) status = 'behind';
-  else if (avgProgress < 60) status = 'at_risk';
+  const status = determineStatus(avgProgress);
   db.prepare('UPDATE okrs SET progress = ?, status = ?, updated_at = datetime(\'now\') WHERE id = ?').run(avgProgress, status, okrId);
 
   // Recalc parent KPI
