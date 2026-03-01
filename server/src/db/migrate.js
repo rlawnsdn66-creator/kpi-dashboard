@@ -79,7 +79,71 @@ function migrate() {
     console.log('kpis에 progress 컬럼 추가 완료');
   }
 
-  // okr_id NOT NULL 제약은 SQLite에서 ALTER로 변경 불가하므로 재생성(seed) 필요
+  // okrs에 kpi_id 컬럼 추가 마이그레이션
+  const okrCols = db.prepare("PRAGMA table_info(okrs)").all().map(c => c.name);
+  if (!okrCols.includes('kpi_id')) {
+    db.exec("ALTER TABLE okrs ADD COLUMN kpi_id INTEGER REFERENCES kpis(id) ON DELETE CASCADE");
+    console.log('okrs에 kpi_id 컬럼 추가 완료');
+  }
+
+  // periods에 milestone_labels 컬럼 추가
+  const periodCols = db.prepare("PRAGMA table_info(periods)").all().map(c => c.name);
+  if (!periodCols.includes('milestone_labels')) {
+    db.exec("ALTER TABLE periods ADD COLUMN milestone_labels TEXT");
+    console.log('periods에 milestone_labels 컬럼 추가 완료');
+  }
+
+  // kr_milestones 테이블 생성 (schema.sql에서 처리되지만 안전하게 확인)
+  db.exec(`CREATE TABLE IF NOT EXISTS kr_milestones (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    key_result_id INTEGER NOT NULL REFERENCES key_results(id) ON DELETE CASCADE,
+    period_label TEXT NOT NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    target_value REAL NOT NULL DEFAULT 0,
+    current_value REAL DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now')),
+    UNIQUE(key_result_id, period_label)
+  )`);
+
+  // okr_milestones 테이블 생성
+  db.exec(`CREATE TABLE IF NOT EXISTS okr_milestones (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    okr_id INTEGER NOT NULL REFERENCES okrs(id) ON DELETE CASCADE,
+    period_label TEXT NOT NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    target_value REAL NOT NULL DEFAULT 0,
+    current_value REAL DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now')),
+    UNIQUE(okr_id, period_label)
+  )`);
+
+  // okrs.kpi_id NOT NULL 마이그레이션
+  const okrKpiCol = db.prepare("PRAGMA table_info(okrs)").all().find(c => c.name === 'kpi_id');
+  if (okrKpiCol && okrKpiCol.notnull === 0) {
+    db.exec("DELETE FROM okrs WHERE kpi_id IS NULL");
+    db.exec("PRAGMA foreign_keys=OFF");
+    db.exec(`CREATE TABLE okrs_new (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      period_id INTEGER NOT NULL REFERENCES periods(id) ON DELETE CASCADE,
+      kpi_id INTEGER NOT NULL REFERENCES kpis(id) ON DELETE CASCADE,
+      team_id INTEGER REFERENCES teams(id) ON DELETE CASCADE,
+      organization_id INTEGER REFERENCES organizations(id) ON DELETE SET NULL,
+      owner_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      title TEXT NOT NULL,
+      description TEXT,
+      progress REAL DEFAULT 0,
+      status TEXT DEFAULT 'on_track' CHECK(status IN ('on_track','at_risk','behind','completed')),
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    )`);
+    db.exec("INSERT INTO okrs_new SELECT * FROM okrs");
+    db.exec("DROP TABLE okrs");
+    db.exec("ALTER TABLE okrs_new RENAME TO okrs");
+    db.exec("PRAGMA foreign_keys=ON");
+    console.log('okrs.kpi_id NOT NULL 마이그레이션 완료');
+  }
 
   console.log('마이그레이션 완료');
 }

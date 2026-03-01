@@ -15,21 +15,13 @@ function getDescendantIds(db, orgId) {
 }
 
 function recalcKpiProgress(db, kpiId) {
-  const krs = db.prepare('SELECT current_value, target_value, weight, direction FROM key_results WHERE kpi_id = ?').all(kpiId);
-  if (krs.length === 0) return;
-  let totalWeight = 0;
-  let weightedProgress = 0;
-  for (const kr of krs) {
-    let progress;
-    if (kr.direction === 'lower_better') {
-      progress = kr.current_value > 0 ? Math.min((kr.target_value / kr.current_value) * 100, 100) : (kr.target_value === 0 ? 100 : 0);
-    } else {
-      progress = kr.target_value !== 0 ? Math.min((kr.current_value / kr.target_value) * 100, 100) : 0;
-    }
-    weightedProgress += progress * kr.weight;
-    totalWeight += kr.weight;
+  const childOkrs = db.prepare('SELECT progress FROM okrs WHERE kpi_id = ?').all(kpiId);
+  if (childOkrs.length === 0) {
+    db.prepare("UPDATE kpis SET progress = 0, current_value = 0, status = 'on_track', updated_at = datetime('now') WHERE id = ?").run(kpiId);
+    return;
   }
-  const avgProgress = totalWeight > 0 ? Math.round(weightedProgress / totalWeight * 10) / 10 : 0;
+  const avg = childOkrs.reduce((sum, o) => sum + o.progress, 0) / childOkrs.length;
+  const avgProgress = Math.round(avg * 10) / 10;
   let status = 'on_track';
   if (avgProgress >= 100) status = 'completed';
   else if (avgProgress < 30) status = 'behind';
@@ -66,6 +58,9 @@ router.get('/', (req, res) => {
   const kpis = db.prepare(sql).all(...params);
   for (const kpi of kpis) {
     kpi.key_results = db.prepare('SELECT * FROM key_results WHERE kpi_id = ? ORDER BY id').all(kpi.id);
+    for (const kr of kpi.key_results) {
+      kr.milestones = db.prepare('SELECT * FROM kr_milestones WHERE key_result_id = ? ORDER BY sort_order').all(kr.id);
+    }
   }
   res.json(kpis);
 });
@@ -77,6 +72,9 @@ router.get('/:id', (req, res) => {
     WHERE k.id = ?`).get(req.params.id);
   if (!row) return res.status(404).json({ error: 'KPI를 찾을 수 없습니다' });
   row.key_results = db.prepare('SELECT * FROM key_results WHERE kpi_id = ? ORDER BY id').all(row.id);
+  for (const kr of row.key_results) {
+    kr.milestones = db.prepare('SELECT * FROM kr_milestones WHERE key_result_id = ? ORDER BY sort_order').all(kr.id);
+  }
   res.json(row);
 });
 
@@ -106,12 +104,12 @@ router.post('/', (req, res) => {
 });
 
 router.put('/:id', (req, res) => {
-  const { period_id, team_id, organization_id, owner_id, name, description, target_value, current_value, unit, direction, status } = req.body;
+  const { period_id, team_id, organization_id, owner_id, name, description, target_value, current_value, unit, direction, status, progress } = req.body;
   const db = getDb();
   const existing = db.prepare('SELECT * FROM kpis WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'KPI를 찾을 수 없습니다' });
-  db.prepare(`UPDATE kpis SET period_id=COALESCE(?,period_id), team_id=COALESCE(?,team_id), organization_id=COALESCE(?,organization_id), owner_id=COALESCE(?,owner_id), name=COALESCE(?,name), description=COALESCE(?,description), target_value=COALESCE(?,target_value), current_value=COALESCE(?,current_value), unit=COALESCE(?,unit), direction=COALESCE(?,direction), status=COALESCE(?,status), updated_at=datetime('now') WHERE id=?`)
-    .run(period_id, team_id, organization_id, owner_id, name, description, target_value, current_value, unit, direction, status, req.params.id);
+  db.prepare(`UPDATE kpis SET period_id=COALESCE(?,period_id), team_id=COALESCE(?,team_id), organization_id=COALESCE(?,organization_id), owner_id=COALESCE(?,owner_id), name=COALESCE(?,name), description=COALESCE(?,description), target_value=COALESCE(?,target_value), current_value=COALESCE(?,current_value), unit=COALESCE(?,unit), direction=COALESCE(?,direction), status=COALESCE(?,status), progress=COALESCE(?,progress), updated_at=datetime('now') WHERE id=?`)
+    .run(period_id, team_id, organization_id, owner_id, name, description, target_value, current_value, unit, direction, status, progress != null ? progress : undefined, req.params.id);
   const kpi = db.prepare('SELECT * FROM kpis WHERE id = ?').get(req.params.id);
   kpi.key_results = db.prepare('SELECT * FROM key_results WHERE kpi_id = ?').all(req.params.id);
   res.json(kpi);

@@ -22,6 +22,7 @@ app.use('/api/periods', require('./routes/periods'));
 app.use('/api/kpis', require('./routes/kpis'));
 app.use('/api/okrs', require('./routes/okrs'));
 app.use('/api/progress', require('./routes/progress'));
+app.use('/api/milestones', require('./routes/milestones'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/reviews', require('./routes/reviews'));
 

@@ -2,8 +2,7 @@ import { NavLink } from 'react-router-dom';
 
 const navItems = [
   { path: '/', label: '대시보드', icon: '📊' },
-  { path: '/kpi', label: 'KPI 관리', icon: '📈' },
-  { path: '/okr', label: 'OKR 관리', icon: '🎯' },
+  { path: '/kpi', label: 'KPI / OKR', icon: '📈' },
   { path: '/team', label: '조직 관리', icon: '👥' },
   { path: '/review', label: '평가 관리', icon: '📝' },
   { path: '/settings', label: '설정', icon: '⚙️' },

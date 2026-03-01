@@ -52,10 +52,21 @@ export const createKeyResult = (okrId, data) => api.post(`/okrs/${okrId}/key-res
 export const updateKeyResult = (okrId, krId, data) => api.put(`/okrs/${okrId}/key-results/${krId}`, data).then(r => r.data);
 export const deleteKeyResult = (okrId, krId) => api.delete(`/okrs/${okrId}/key-results/${krId}`).then(r => r.data);
 
+// OKR Milestones
+export const bulkSetOkrMilestones = (okrId, milestones) => api.post(`/okrs/${okrId}/milestones`, { milestones }).then(r => r.data);
+export const updateOkrMilestone = (okrId, msId, data) => api.put(`/okrs/${okrId}/milestones/${msId}`, data).then(r => r.data);
+
 // Key Results (KPI)
 export const createKpiKeyResult = (kpiId, data) => api.post(`/kpis/${kpiId}/key-results`, data).then(r => r.data);
 export const updateKpiKeyResult = (kpiId, krId, data) => api.put(`/kpis/${kpiId}/key-results/${krId}`, data).then(r => r.data);
 export const deleteKpiKeyResult = (kpiId, krId) => api.delete(`/kpis/${kpiId}/key-results/${krId}`).then(r => r.data);
+
+// 마일스톤
+export const getMilestones = (params) => api.get('/milestones', { params }).then(r => r.data);
+export const createMilestone = (data) => api.post('/milestones', data).then(r => r.data);
+export const updateMilestone = (id, data) => api.put(`/milestones/${id}`, data).then(r => r.data);
+export const deleteMilestone = (id) => api.delete(`/milestones/${id}`).then(r => r.data);
+export const bulkSetMilestones = (data) => api.post('/milestones/bulk', data).then(r => r.data);
 
 // 진행 기록
 export const getProgress = (params) => api.get('/progress', { params }).then(r => r.data);

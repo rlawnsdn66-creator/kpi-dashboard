@@ -111,13 +111,13 @@ function seed() {
   const kpiIds = kpisData.map(k => insertKpi.run(...k).lastInsertRowid);
 
   // OKR
-  const insertOkr = db.prepare(`INSERT INTO okrs (period_id, team_id, organization_id, owner_id, title, description, progress, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+  const insertOkr = db.prepare(`INSERT INTO okrs (period_id, kpi_id, team_id, organization_id, owner_id, title, description, progress, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`);
   const okrData = [
-    [periodIds[0], teamIds[2], orgTeamIds[2], userIds[3], '백엔드 성능 최적화', 'API 성능 및 안정성 향상', 65, 'on_track'],
-    [periodIds[0], teamIds[3], orgTeamIds[3], userIds[6], '사용자 경험 개선', 'UI/UX 전면 개선', 40, 'at_risk'],
-    [periodIds[0], teamIds[5], orgTeamIds[5], userIds[9], '매출 성장 가속화', '영업 파이프라인 확대 및 매출 증대', 35, 'behind'],
-    [periodIds[0], teamIds[6], orgTeamIds[6], userIds[11], '브랜드 인지도 확대', '온/오프라인 마케팅 강화', 55, 'on_track'],
-    [periodIds[0], teamIds[0], orgTeamIds[0], userIds[0], '핵심 인재 확보', '주요 포지션 채용 완료', 50, 'on_track'],
+    [periodIds[0], kpiIds[0], teamIds[2], orgTeamIds[2], userIds[3], '백엔드 성능 최적화', 'API 성능 및 안정성 향상', 65, 'on_track'],
+    [periodIds[0], kpiIds[2], teamIds[3], orgTeamIds[3], userIds[6], '사용자 경험 개선', 'UI/UX 전면 개선', 40, 'at_risk'],
+    [periodIds[0], kpiIds[3], teamIds[5], orgTeamIds[5], userIds[9], '매출 성장 가속화', '영업 파이프라인 확대 및 매출 증대', 35, 'behind'],
+    [periodIds[0], kpiIds[5], teamIds[6], orgTeamIds[6], userIds[11], '브랜드 인지도 확대', '온/오프라인 마케팅 강화', 55, 'on_track'],
+    [periodIds[0], kpiIds[6], teamIds[0], orgTeamIds[0], userIds[0], '핵심 인재 확보', '주요 포지션 채용 완료', 50, 'on_track'],
   ];
   const okrIds = okrData.map(o => insertOkr.run(...o).lastInsertRowid);
 
@@ -168,6 +168,32 @@ function seed() {
     [null, kpiIds[7], '코드 리뷰 버그 탐지', 25, 28, '%', 1, 'higher_better'],
   ];
   kpiKeyResults.forEach(kr => insertKr.run(...kr));
+
+  // OKR Milestones (6월, 10월, 12월)
+  const insertOkrMs = db.prepare('INSERT INTO okr_milestones (okr_id, period_label, sort_order, target_value, current_value) VALUES (?, ?, ?, ?, ?)');
+  const okrMilestones = [
+    // OKR 0: 백엔드 성능 최적화
+    [okrIds[0], '6월', 0, 30, 25],
+    [okrIds[0], '10월', 1, 70, 45],
+    [okrIds[0], '12월', 2, 100, 0],
+    // OKR 1: 사용자 경험 개선
+    [okrIds[1], '6월', 0, 40, 28],
+    [okrIds[1], '10월', 1, 75, 0],
+    [okrIds[1], '12월', 2, 100, 0],
+    // OKR 2: 매출 성장 가속화
+    [okrIds[2], '6월', 0, 2000, 1800],
+    [okrIds[2], '10월', 1, 4000, 0],
+    [okrIds[2], '12월', 2, 5000, 0],
+    // OKR 3: 브랜드 인지도 확대
+    [okrIds[3], '6월', 0, 30000, 32000],
+    [okrIds[3], '10월', 1, 70000, 0],
+    [okrIds[3], '12월', 2, 100000, 0],
+    // OKR 4: 핵심 인재 확보
+    [okrIds[4], '6월', 0, 3, 2],
+    [okrIds[4], '10월', 1, 6, 0],
+    [okrIds[4], '12월', 2, 8, 0],
+  ];
+  okrMilestones.forEach(m => insertOkrMs.run(...m));
 
   // Progress Records
   const insertProgress = db.prepare(`INSERT INTO progress_records (record_type, record_id, value, note, recorded_by, created_at) VALUES (?, ?, ?, ?, ?, ?)`);

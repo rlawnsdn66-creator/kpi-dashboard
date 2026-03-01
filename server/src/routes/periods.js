@@ -36,13 +36,13 @@ router.post('/', (req, res) => {
 });
 
 router.put('/:id', (req, res) => {
-  const { name, type, start_date, end_date, is_active } = req.body;
+  const { name, type, start_date, end_date, is_active, milestone_labels } = req.body;
   const db = getDb();
   if (is_active) {
     db.prepare('UPDATE periods SET is_active = 0').run();
   }
-  const result = db.prepare('UPDATE periods SET name = COALESCE(?, name), type = COALESCE(?, type), start_date = COALESCE(?, start_date), end_date = COALESCE(?, end_date), is_active = COALESCE(?, is_active) WHERE id = ?')
-    .run(name, type, start_date, end_date, is_active != null ? (is_active ? 1 : 0) : null, req.params.id);
+  const result = db.prepare('UPDATE periods SET name = COALESCE(?, name), type = COALESCE(?, type), start_date = COALESCE(?, start_date), end_date = COALESCE(?, end_date), is_active = COALESCE(?, is_active), milestone_labels = COALESCE(?, milestone_labels) WHERE id = ?')
+    .run(name, type, start_date, end_date, is_active != null ? (is_active ? 1 : 0) : null, milestone_labels, req.params.id);
   if (result.changes === 0) return res.status(404).json({ error: '기간을 찾을 수 없습니다' });
   res.json(getDb().prepare('SELECT * FROM periods WHERE id = ?').get(req.params.id));
 });

@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS periods (
 CREATE TABLE IF NOT EXISTS okrs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   period_id INTEGER NOT NULL REFERENCES periods(id) ON DELETE CASCADE,
+  kpi_id INTEGER NOT NULL REFERENCES kpis(id) ON DELETE CASCADE,
   team_id INTEGER REFERENCES teams(id) ON DELETE CASCADE,
   organization_id INTEGER REFERENCES organizations(id) ON DELETE SET NULL,
   owner_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
@@ -127,6 +128,30 @@ CREATE TABLE IF NOT EXISTS reviews (
   status TEXT DEFAULT 'draft' CHECK(status IN ('draft','in_progress','submitted','approved')),
   created_at TEXT DEFAULT (datetime('now')),
   updated_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS kr_milestones (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  key_result_id INTEGER NOT NULL REFERENCES key_results(id) ON DELETE CASCADE,
+  period_label TEXT NOT NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  target_value REAL NOT NULL DEFAULT 0,
+  current_value REAL DEFAULT 0,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now')),
+  UNIQUE(key_result_id, period_label)
+);
+
+CREATE TABLE IF NOT EXISTS okr_milestones (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  okr_id INTEGER NOT NULL REFERENCES okrs(id) ON DELETE CASCADE,
+  period_label TEXT NOT NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  target_value REAL NOT NULL DEFAULT 0,
+  current_value REAL DEFAULT 0,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now')),
+  UNIQUE(okr_id, period_label)
 );
 
 CREATE TABLE IF NOT EXISTS review_items (

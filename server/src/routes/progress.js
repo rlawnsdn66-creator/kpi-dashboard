@@ -1,26 +1,8 @@
 const { Router } = require('express');
 const { getDb } = require('../db/connection');
-const { recalcKpiProgress } = require('./kpis');
+const { recalcOkrProgress } = require('./okrs');
 
 const router = Router();
-
-function recalcOkrProgress(db, okrId) {
-  const krs = db.prepare('SELECT current_value, target_value, weight FROM key_results WHERE okr_id = ?').all(okrId);
-  if (krs.length === 0) return;
-  let totalWeight = 0;
-  let weightedProgress = 0;
-  for (const kr of krs) {
-    const progress = kr.target_value !== 0 ? Math.min((kr.current_value / kr.target_value) * 100, 100) : 0;
-    weightedProgress += progress * kr.weight;
-    totalWeight += kr.weight;
-  }
-  const avgProgress = totalWeight > 0 ? Math.round(weightedProgress / totalWeight * 10) / 10 : 0;
-  let status = 'on_track';
-  if (avgProgress >= 100) status = 'completed';
-  else if (avgProgress < 30) status = 'behind';
-  else if (avgProgress < 60) status = 'at_risk';
-  db.prepare('UPDATE okrs SET progress = ?, status = ?, updated_at = datetime(\'now\') WHERE id = ?').run(avgProgress, status, okrId);
-}
 
 router.get('/', (req, res) => {
   const { record_type, record_id } = req.query;
@@ -60,10 +42,9 @@ router.post('/', (req, res) => {
       }
     } else if (record_type === 'key_result') {
       db.prepare('UPDATE key_results SET current_value = ?, updated_at = datetime(\'now\') WHERE id = ?').run(value, record_id);
-      const kr = db.prepare('SELECT okr_id, kpi_id FROM key_results WHERE id = ?').get(record_id);
-      if (kr) {
-        if (kr.okr_id) recalcOkrProgress(db, kr.okr_id);
-        if (kr.kpi_id) recalcKpiProgress(db, kr.kpi_id);
+      const kr = db.prepare('SELECT okr_id FROM key_results WHERE id = ?').get(record_id);
+      if (kr && kr.okr_id) {
+        recalcOkrProgress(db, kr.okr_id);
       }
     }
     return result.lastInsertRowid;

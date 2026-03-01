@@ -87,15 +87,14 @@ export default function Dashboard() {
           <div className="table-wrapper">
             <table className="data-table">
               <thead>
-                <tr><th>KPI</th><th>조직</th><th>현재값</th><th>목표값</th><th>상태</th></tr>
+                <tr><th>KPI</th><th>조직</th><th>진행률</th><th>상태</th></tr>
               </thead>
               <tbody>
                 {atRiskKpis.map(kpi => (
                   <tr key={kpi.id}>
                     <td>{kpi.name}</td>
                     <td>{kpi.team_name}</td>
-                    <td>{kpi.current_value} {kpi.unit}</td>
-                    <td>{kpi.target_value} {kpi.unit}</td>
+                    <td>{Math.round(kpi.progress)}%</td>
                     <td><StatusBadge status={kpi.status} /></td>
                   </tr>
                 ))}
